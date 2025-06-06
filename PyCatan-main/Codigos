@@ -1,0 +1,34 @@
+def on_commerce_phase(self):
+    """
+    Trigger para cuando empieza la fase de comercio. Devuelve una oferta
+    basada en genética y prioridad de recursos. Sólo ofrece si el recurso
+    recibido es más prioritario que el ofrecido, el ratio es favorable,
+    y se mantiene por debajo del límite para evitar al ladrón.
+    :return: TradeOffer o None
+    """
+    max_total = 13
+    current_total = self.hand.get_total()
+    if current_total >= max_total:
+        return None # no comerciamos para no sobrepasar nuestro limite impuesto
+
+    offer = TradeOffer()
+    material_priority = self.genes['material_priority']
+
+    # Intentar generar una oferta útil y válida
+    for give_index, give_mat in enumerate(material_priority[::-1]):  # menos prioritarios
+        give_amount = self.hand.get_from_id(give_mat)
+        if give_amount < 2:
+            continue  # necesitas al menos 2 para ofrecer algo decente
+
+        for get_index, get_mat in enumerate(material_priority):  # más prioritarios
+            if give_mat == get_mat:
+                continue
+
+            # Si el material que queremos tiene más prioridad (índice menor)
+            if get_index < (len(material_priority) - give_index):
+                ratio = 2  # ratio de intercambio (puede ser 2:1, 3:1, etc.)
+                if give_amount >= ratio and current_total - ratio + 1 <= max_total:
+                    offer.set_offer(give={give_mat: ratio}, receive={get_mat: 1})
+                    return offer
+
+    return None  # si no se cumple ninguna condición
