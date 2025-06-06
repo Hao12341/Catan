@@ -4,7 +4,7 @@ from Classes.Materials import Materials
 from Classes.TradeOffer import TradeOffer
 from Interfaces.AgentInterface import AgentInterface
 
-class HaoDiego(AgentInterface):
+class PabloAleixAlexAgent(AgentInterface):
 
     def __init__(self, agent_id):
         super().__init__(agent_id)
