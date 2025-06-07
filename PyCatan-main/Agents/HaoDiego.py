@@ -115,15 +115,36 @@ class HaoDiego(AgentInterface):
     def on_having_more_than_7_materials_when_thief_is_called(self):
         """
         Trigger que se llama cuando se debe descartar materiales. Si no los descarta el agente, los descartará
-        el GameDirector aleatoriamente.
+        el GameDirector aleatoriamente. Se descartan primero los materiales con menor prioridad.
         :return: Hand()
         """
         if self.hand.get_total() > 7:
-            for mat in [MaterialConstants.WOOL, MaterialConstants.CEREAL, MaterialConstants.MINERAL, MaterialConstants.CLAY, MaterialConstants.WOOD]:
+            # Obtener las prioridades de los materiales desde genes['material_priority']
+            material_priority = self.genes['material_priority']
+            
+            # Lista de materiales en el mismo orden que en 'material_priority'
+            materials = [
+                MaterialConstants.WOOL,     # wool
+                MaterialConstants.CEREAL,   # cereal
+                MaterialConstants.MINERAL,  # mineral
+                MaterialConstants.CLAY,     # clay
+                MaterialConstants.WOOD      # wood
+            ]
+            
+            # Crear una lista de tuplas con el material y su prioridad asociada
+            materials_with_priority = list(zip(materials, material_priority))
+            
+            # Ordenar los materiales por prioridad (de menor a mayor)
+            sorted_materials = sorted(materials_with_priority, key=lambda x: x[1])
+
+            # Recorremos los materiales ordenados por prioridad (del más inútil al más útil)
+            for mat, _ in sorted_materials:
                 if self.hand.get_from_id(mat) > 1:
                     self.hand.remove_material(mat, 1)
                     return self.hand
+
         return None
+
 
     def on_moving_thief(self):
         """
@@ -216,59 +237,55 @@ class HaoDiego(AgentInterface):
         if self.hand.resources.has_more(Materials(2, 3, 0, 0, 0)):
             return None
 
-        gives = Materials(0,0,0,0,0)
-        receives = Materials(0,0,0,0,0)
+        gives = Materials(0, 0, 0, 0, 0)
+        receives = Materials(0, 0, 0, 0, 0)
 
+        # Si el jugador ya tiene una ciudad, no se genera oferta
         if self.town_number >= 1 and self.hand.resources.has_more(BuildConstants.CITY):
             return None
+        
         elif self.town_number >= 1:
-            cereal_hand = self.hand.resources.cereal
-            mineral_hand = self.hand.resources.mineral
-            wood_hand = self.hand.resources.wood
-            clay_hand = self.hand.resources.clay
-            wool_hand = self.hand.resources.wool
-            total_given_materials = (5 - cereal_hand - mineral_hand - wood_hand - clay_hand - wool_hand)
+            # Determinamos los materiales que faltan para completar la ciudad
+            missing_materials = {
+                MaterialConstants.CEREAL: 1 - self.hand.resources.cereal,
+                MaterialConstants.MINERAL: 1 - self.hand.resources.mineral,
+                MaterialConstants.CLAY: 1 - self.hand.resources.clay,
+                MaterialConstants.WOOD: 1 - self.hand.resources.wood,
+                MaterialConstants.WOOL: 1 - self.hand.resources.wool,
+            }
 
-            if total_given_materials > 0:
-                materials_to_give = Materials(0,0,0,0,0)
-                for mat, current_amount in {
-                    MaterialConstants.CEREAL: cereal_hand,
-                    MaterialConstants.MINERAL: mineral_hand,
-                    MaterialConstants.WOOD: wood_hand,
-                    MaterialConstants.CLAY: clay_hand,
-                    MaterialConstants.WOOL: wool_hand,
-                }.items():
-                    if current_amount > 0:
-                        self.hand.remove_material(mat, 1)
-                        materials_to_give.add_from_id(MaterialConstants.MINERAL, mat)
-                        total_given_materials -= 1
-                        if total_given_materials == 0:
-                            break
+            # Ordenamos los materiales para dar según la cantidad que falta
+            sorted_missing_materials = sorted(missing_materials.items(), key=lambda x: x[1], reverse=True)
 
-                gives = materials_to_give
-
-        elif self.town_number == 0:
-            materials_to_receive = Materials(
-                1 - self.hand.resources.cereal,
-                0 - self.hand.resources.mineral,
-                1 - self.hand.resources.clay,
-                1 - self.hand.resources.wood,
-                1 - self.hand.resources.wool
-            )
-
-            for mat, current_amount in {
-                MaterialConstants.CEREAL: self.hand.resources.cereal,
-                MaterialConstants.MINERAL: self.hand.resources.mineral,
-                MaterialConstants.CLAY: self.hand.resources.clay,
-                MaterialConstants.WOOD: self.hand.resources.wood,
-                MaterialConstants.WOOL: self.hand.resources.wool,
-            }.items():
-                if materials_to_receive.get_from_id(mat) < 0 and current_amount > 0:
+            for mat, missing_count in sorted_missing_materials:
+                if missing_count > 0 and self.hand.resources.get_from_id(mat) > 0:
+                    # Damos los materiales faltantes
+                    gives.add_from_id(mat, 1)
                     self.hand.remove_material(mat, 1)
-                    receives.add_from_id(MaterialConstants.MINERAL, mat)
+        
+        elif self.town_number == 0:
+            # Cuando no tenemos ningún pueblo, tratamos de recibir materiales
+            missing_materials_to_receive = {
+                MaterialConstants.CEREAL: 1 - self.hand.resources.cereal,
+                MaterialConstants.MINERAL: 1 - self.hand.resources.mineral,
+                MaterialConstants.CLAY: 1 - self.hand.resources.clay,
+                MaterialConstants.WOOD: 1 - self.hand.resources.wood,
+                MaterialConstants.WOOL: 1 - self.hand.resources.wool,
+            }
 
+            # Ordenamos los materiales que necesitamos
+            sorted_missing_materials = sorted(missing_materials_to_receive.items(), key=lambda x: x[1], reverse=True)
+
+            for mat, missing_count in sorted_missing_materials:
+                if missing_count > 0:
+                    # Recibimos los materiales que más necesitamos
+                    receives.add_from_id(mat, 1)
+                    self.hand.remove_material(mat, 1)
+
+        # Crear la oferta de comercio
         trade_offer = TradeOffer(gives, receives)
         return trade_offer
+
 
     def on_build_phase(self, board_instance):
         """

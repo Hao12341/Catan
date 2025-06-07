@@ -5,6 +5,11 @@ import concurrent.futures
 import csv
 from Agents.RandomAgent import RandomAgent as ra
 from Managers.GameDirector import GameDirector
+from Agents.SigmaAgent import SigmaAgent as Sig
+from Agents.TristanAgent import TristanAgent as Tris
+from Agents.EdoAgent import EdoAgent as Edo
+from Agents.AdrianHerasAgent import AdrianHerasAgent as Ad
+from Agents.AlexPastorAgent import AlexPastorAgent as AlexP
 
 n_matches = 1000
 porcentaje_workers = 0.95
@@ -20,7 +25,7 @@ def cargar_agente(ruta_clase):
 
 def simulate_match(position, agente_alumno):
     try:
-        match_agents = [ra, ra, ra]
+        match_agents = [Sig,Tris,Edo]
         match_agents.insert(position, agente_alumno)
 
         game_director = GameDirector(agents=match_agents, max_rounds=200, store_trace=False)
