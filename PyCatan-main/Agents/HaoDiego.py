@@ -26,6 +26,10 @@ class HaoDiego(AgentInterface):
         # Cada lista dentro del gen contiene los valores entre 0 y 1 de prioridad/posibilidad de usar esa estrategia
         # La suma de todos los valores de una de estas listas dentro del gen debe dar 1 (la suma de todas las posibilidades es igual al 100% de posibilidades)
         self.genes = {
+            'begining_priority': [
+                0.5,      # MAX_RESOURCES_TYPE
+                0.5,      # MAX_DICE_PROB
+            ],
             'build_priority': [
                 0.2,    #'CITY_FIRST'
                 0.2,    #'TOWN_FIRST'
@@ -40,7 +44,7 @@ class HaoDiego(AgentInterface):
                 0.2,    # wool
                 0.2     # mineral
             ],   
-            'thief_priority':[
+            'thief_priority': [
                 0.3,    # MAX_PLAYERS
                 0.3,    # MAX_RESOURCES
                 0.4     # MAX_DICE_PROB
@@ -253,14 +257,54 @@ class HaoDiego(AgentInterface):
         Se llama únicamente al inicio de la partida y sirve para colocar 1 pueblo y una carretera adyacente en el mapa
         :return: int, int
         """
-        self.choose_priority("material_priority")
+        priority_id = self.choose_priority("begining_priority")
         
         self.board = board_instance
         possibilities = self.board.valid_starting_nodes()
         chosen_node_id = -1
-        if possibilities:
-            chosen_node_id = random.choice(possibilities)
-        
+                
+        if priority_id == 0: # MAX_RESOURCES_TYPE
+            best_terrain = 0
+            best_node = 0
+            for node_id in possibilities:
+                terrain_resources_count = 0
+                different_terrains = []
+                for terrain_id in self.board.__get_contacting_terrain__(node_id):
+                    terrain_type = self.board.__get_terrain_type__(terrain_id)
+                    if terrain_type != -1:
+                        terrain_resources_count += 1
+                        if terrain_type is not different_terrains:
+                            different_terrains.append(terrain_type)
+                            terrain_resources_count += 1
+                if terrain_resources_count > best_terrain:
+                    best_terrain = terrain_resources_count
+                    best_node = node_id
+            chosen_node_id = best_node
+            
+        elif priority_id == 1: # MAX_DICE_PROB
+            best_terrain = 0
+            best_node = 0
+            for node_id in possibilities:
+                terrain_resources_count = 0
+                for terrain_id in self.board.__get_contacting_terrain__(node_id):
+                    terrain_probability = self.board.__get_probability__(terrain_id)
+                    if terrain_probability in [6, 8]:
+                        terrain_resources_count += 5
+                    elif terrain_probability in [5, 9]:
+                        terrain_resources_count += 4
+                    elif terrain_probability in [4, 10]:
+                        terrain_resources_count += 3
+                    elif terrain_probability in [3, 11]:
+                        terrain_resources_count += 2
+                    elif terrain_probability in [2, 12]:
+                        terrain_resources_count += 1
+                    
+                if terrain_resources_count > best_terrain:
+                    best_terrain = terrain_resources_count
+                    best_node = node_id
+            chosen_node_id = best_node
+                
+                
         self.town_number += 1
         possible_roads = self.board.nodes[chosen_node_id]['adjacent']
         chosen_road_to_id = random.choice(possible_roads)
