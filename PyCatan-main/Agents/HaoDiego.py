@@ -26,7 +26,7 @@ class HaoDiego(AgentInterface):
         # Cada lista dentro del gen contiene los valores entre 0 y 1 de prioridad/posibilidad de usar esa estrategia
         # La suma de todos los valores de una de estas listas dentro del gen debe dar 1 (la suma de todas las posibilidades es igual al 100% de posibilidades)
         self.genes = {
-            'begining_priority': [
+            'beginning_priority': [
                 0.5,      # MAX_RESOURCES_TYPE
                 0.5,      # MAX_DICE_PROB
             ],
@@ -38,11 +38,11 @@ class HaoDiego(AgentInterface):
                 0.2,    # CARD_SPAM
             ],  
             'material_priority': [
-                0.2,    # clay
-                0.2,    # wood
-                0.2,    # cereal
-                0.2,    # wool
-                0.2     # mineral
+                0.3,    # clay
+                0.4,    # wood
+                0.05,    # cereal
+                0.1,    # wool
+                0.15     # mineral
             ],   
             'thief_priority': [
                 0.5,    # MAX_PLAYERS
@@ -50,6 +50,11 @@ class HaoDiego(AgentInterface):
             ]    
         }
         self.probability_accumulated()
+        self.priority_begin = self.choose_priority('beginning_priority')
+        self.priority_build = self.choose_priority('build_priority')
+        self.priority_material = self.choose_priority('material_priority')
+        self.priority_thief = self.choose_priority('thief_priority')
+    
     
     def probability_accumulated(self):
         for key in self.genes:
@@ -121,7 +126,9 @@ class HaoDiego(AgentInterface):
         jugador adyacente a la ficha de terreno seleccionada
         :return: {terrain, player}
         """
-        priority_id = self.choose_priority("thief_priority")
+        #priority_id = self.choose_priority("thief_priority")
+        priority_id = self.priority_thief
+        
         best_terrain = 0
         terrain_with_thief_id = -1
         max_terrain_score = 0
@@ -263,7 +270,9 @@ class HaoDiego(AgentInterface):
         Trigger para cuando empieza la fase de construcción. Devuelve un string indicando qué quiere construir
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        priority_id = self.choose_priority("build_priority")
+        #priority_id = self.choose_priority("build_priority")
+        priority_id = self.priority_build
+        
         self.board = board_instance
         
         def calculate_probability_sum(node_id):
@@ -399,7 +408,8 @@ class HaoDiego(AgentInterface):
         Se llama únicamente al inicio de la partida y sirve para colocar 1 pueblo y una carretera adyacente en el mapa
         :return: int, int
         """
-        priority_id = self.choose_priority("begining_priority")
+        #priority_id = self.choose_priority("beginning_priority")
+        priority_id = self.priority_begin
         
         self.board = board_instance
         possibilities = self.board.valid_starting_nodes()
