@@ -45,9 +45,8 @@ class HaoDiego(AgentInterface):
                 0.2     # mineral
             ],   
             'thief_priority': [
-                0.3,    # MAX_PLAYERS
-                0.3,    # MAX_RESOURCES
-                0.4     # MAX_DICE_PROB
+                0.5,    # MAX_PLAYERS
+                0.5     # MAX_DICE_PROB
             ]    
         }
         self.probability_accumulated()
@@ -122,21 +121,67 @@ class HaoDiego(AgentInterface):
         jugador adyacente a la ficha de terreno seleccionada
         :return: {terrain, player}
         """
-        
+        priority_id = self.choose_priority("thief_priority")
+        best_terrain = 0
         terrain_with_thief_id = -1
+        max_terrain_score = 0
+        enemy_final = None
+        
+        if priority_id == 0: # MAX_PLAYERS
+            for terrain in self.board.terrain:
+                terrain_score = 0
+                if not terrain['has_thief']:
+                    nodes = self.board.__get_contacting_nodes__(terrain['id'])
+                    has_own_town = any(self.board.nodes[node_id]['player'] == self.id for node_id in nodes)
+                    enemy = next((self.board.nodes[node_id]['player'] for node_id in nodes if self.board.nodes[node_id]['player'] != -1), -1)
+                    
+                    if not has_own_town and enemy != -1:
+                        enemy_final = enemy
+                        
+                        for node_id in nodes:
+                            if self.board.nodes[node_id]['player'] != self.id:
+                                terrain_score += 1
+                
+                elif terrain['has_thief']:
+                    terrain_with_thief_id = terrain['id']
+                    
+            if terrain_score > max_terrain_score:
+                max_terrain_score = terrain_score
+                best_terrain = terrain['id']
+               
+        elif priority_id == 1: # MAX_DICE_PROB
+            for terrain in self.board.terrain:
+                terrain_score = 0
+                if not terrain['has_thief']:
+                    nodes = self.board.__get_contacting_nodes__(terrain['id'])
+                    has_own_town = any(self.board.nodes[node_id]['player'] == self.id for node_id in nodes)
+                    enemy = next((self.board.nodes[node_id]['player'] for node_id in nodes if self.board.nodes[node_id]['player'] != -1), -1)
+     
+                    if not has_own_town and enemy != -1:
+                        enemy_final = enemy
+                        
+                        if terrain['probability'] in [6, 8]:
+                            terrain_score += 5
+                        elif terrain['probability'] in [5, 9]:
+                            terrain_score += 4
+                        elif terrain['probability'] in [4, 10]:
+                            terrain_score += 3
+                        elif terrain['probability'] in [3, 11]:
+                            terrain_score += 2
+                        elif terrain['probability'] in [2, 12]:
+                            terrain_score += 1
 
-        for terrain in self.board.terrain:
-            if not terrain['has_thief'] and (terrain['probability'] == 6 or terrain['probability'] == 8):
-                nodes = self.board.__get_contacting_nodes__(terrain['id'])
-                has_own_town = any(self.board.nodes[node_id]['player'] == self.id for node_id in nodes)
-                enemy = next((self.board.nodes[node_id]['player'] for node_id in nodes if self.board.nodes[node_id]['player'] != -1), -1)
-
-                if not has_own_town and enemy != -1:
-                    return {'terrain': terrain['id'], 'player': enemy}
-            elif terrain['has_thief']:
-                terrain_with_thief_id = terrain['id']
-
-        return {'terrain': terrain_with_thief_id, 'player': -1}
+                elif terrain['has_thief']:
+                    terrain_with_thief_id = terrain['id']
+                    
+            if terrain_score > max_terrain_score:
+                max_terrain_score = terrain_score
+                best_terrain = terrain['id']
+                  
+        if best_terrain != 0:
+            return {'terrain': best_terrain, 'player': enemy_final}
+        else:
+            return {'terrain': terrain_with_thief_id, 'player': -1}
 
     def on_turn_end(self):
         """
