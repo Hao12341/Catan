@@ -31,11 +31,11 @@ class HaoDiego(AgentInterface):
                 0.5,      # MAX_DICE_PROB
             ],
             'build_priority': [
-                0.2,    #'CITY_FIRST'
-                0.2,    #'TOWN_FIRST'
-                0.2,    #'ROAD_EXPAND'
-                0.2,    #'PORT_HUNTER'
-                0.2     #'CARD_SPAM'
+                0.2,    # CITY_FIRST
+                0.2,    # TOWN_FIRST
+                0.2,    # ROAD_EXPAND
+                0.2,    # PORT_HUNTER
+                0.2,    # CARD_SPAM
             ],  
             'material_priority': [
                 0.2,    # clay
@@ -218,36 +218,133 @@ class HaoDiego(AgentInterface):
         Trigger para cuando empieza la fase de construcción. Devuelve un string indicando qué quiere construir
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        
+        priority_id = self.choose_priority("build_priority")
         self.board = board_instance
-
+        
         def calculate_probability_sum(node_id):
             return sum(self.board.terrain[terrain_piece_id]['probability'] for terrain_piece_id in self.board.nodes[node_id]['contacting_terrain'])
-
-        if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
-            possibilities = self.board.valid_city_nodes(self.id)
-            if possibilities:
-                best_node_id = max(possibilities, key=calculate_probability_sum)
-                self.town_number -= 1
-                return {'building': BuildConstants.CITY, 'node_id': best_node_id}
-
-        if self.hand.resources.has_more(BuildConstants.TOWN):
-            possibilities = self.board.valid_town_nodes(self.id)
-            if possibilities:
-                best_node_id = max(possibilities, key=calculate_probability_sum)
-                self.town_number += 1
-                return {'building': BuildConstants.TOWN, 'node_id': best_node_id}
-
-        if self.hand.resources.has_more(BuildConstants.ROAD):
-            road_possibilities = self.board.valid_road_nodes(self.id)
-            if road_possibilities:
-                random_road = random.choice(road_possibilities)
-                return {'building': BuildConstants.ROAD,
-                        'node_id': random_road['starting_node'],
-                        'road_to': random_road['finishing_node']}
-
-        if self.hand.resources.has_more(BuildConstants.CARD):
-            return {'building': BuildConstants.CARD}
+        
+        if priority_id == 0: # CITY_FIRST
+            
+            if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
+                possibilities = self.board.valid_city_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number -= 1
+                    return {'building': BuildConstants.CITY, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.TOWN):
+                possibilities = self.board.valid_town_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number += 1
+                    return {'building': BuildConstants.TOWN, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.ROAD):
+                road_possibilities = self.board.valid_road_nodes(self.id)
+                if road_possibilities:
+                    random_road = random.choice(road_possibilities)
+                    return {'building': BuildConstants.ROAD,
+                            'node_id': random_road['starting_node'],
+                            'road_to': random_road['finishing_node']}
+            if self.hand.resources.has_more(BuildConstants.CARD):
+                return {'building': BuildConstants.CARD}
+            
+        elif priority_id == 1: # TOWN_FIRST
+            
+            if self.hand.resources.has_more(BuildConstants.TOWN):
+                possibilities = self.board.valid_town_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number += 1
+                    return {'building': BuildConstants.TOWN, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
+                possibilities = self.board.valid_city_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number -= 1
+                    return {'building': BuildConstants.CITY, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.ROAD):
+                road_possibilities = self.board.valid_road_nodes(self.id)
+                if road_possibilities:
+                    random_road = random.choice(road_possibilities)
+                    return {'building': BuildConstants.ROAD,
+                            'node_id': random_road['starting_node'],
+                            'road_to': random_road['finishing_node']}
+            if self.hand.resources.has_more(BuildConstants.CARD):
+                return {'building': BuildConstants.CARD}
+            
+        elif priority_id == 2: # ROAD_EXPAND
+            
+            if self.hand.resources.has_more(BuildConstants.ROAD):
+                road_possibilities = self.board.valid_road_nodes(self.id)
+                if road_possibilities:
+                    random_road = random.choice(road_possibilities)
+                    return {'building': BuildConstants.ROAD,
+                            'node_id': random_road['starting_node'],
+                            'road_to': random_road['finishing_node']}
+            if self.hand.resources.has_more(BuildConstants.TOWN):
+                possibilities = self.board.valid_town_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number += 1
+                    return {'building': BuildConstants.TOWN, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
+                possibilities = self.board.valid_city_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number -= 1
+                    return {'building': BuildConstants.CITY, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.CARD):
+                return {'building': BuildConstants.CARD}
+            
+        elif priority_id == 3: # PORT_HUNTER
+            
+            if self.hand.resources.has_more(BuildConstants.TOWN):
+                possibilities = self.board.valid_town_nodes(self.id)
+                if possibilities:
+                    for node_id in possibilities:
+                        if self.board.is_coastal_node(node_id):
+                            if self.board.__get_harbors__(node_id) != None:
+                                self.town_number += 1
+                                return {'building': BuildConstants.TOWN, 'node_id': node_id}  
+            if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
+                possibilities = self.board.valid_city_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number -= 1
+                    return {'building': BuildConstants.CITY, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.ROAD):
+                road_possibilities = self.board.valid_road_nodes(self.id)
+                if road_possibilities:
+                    random_road = random.choice(road_possibilities)
+                    return {'building': BuildConstants.ROAD,
+                            'node_id': random_road['starting_node'],
+                            'road_to': random_road['finishing_node']}
+            if self.hand.resources.has_more(BuildConstants.CARD):
+                return {'building': BuildConstants.CARD}
+                
+        elif priority_id == 4: # CARD_SPAM
+            
+            if self.hand.resources.has_more(BuildConstants.CARD):
+                return {'building': BuildConstants.CARD}
+            if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
+                possibilities = self.board.valid_city_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number -= 1
+                    return {'building': BuildConstants.CITY, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.TOWN):
+                possibilities = self.board.valid_town_nodes(self.id)
+                if possibilities:
+                    best_node_id = max(possibilities, key=calculate_probability_sum)
+                    self.town_number += 1
+                    return {'building': BuildConstants.TOWN, 'node_id': best_node_id}
+            if self.hand.resources.has_more(BuildConstants.ROAD):
+                road_possibilities = self.board.valid_road_nodes(self.id)
+                if road_possibilities:
+                    random_road = random.choice(road_possibilities)
+                    return {'building': BuildConstants.ROAD,
+                            'node_id': random_road['starting_node'],
+                            'road_to': random_road['finishing_node']}
 
         return None
 
