@@ -50,10 +50,6 @@ class HaoDiego(AgentInterface):
             ]    
         }
         self.probability_accumulated()
-        self.priority_begin = self.choose_priority('beginning_priority')
-        self.priority_build = self.choose_priority('build_priority')
-        self.priority_materials = self.choose_priority('material_priority')
-        self.priority_thief = self.choose_priority('thief_priority')
     
     
     def probability_accumulated(self):
@@ -136,8 +132,7 @@ class HaoDiego(AgentInterface):
         jugador adyacente a la ficha de terreno seleccionada
         :return: {terrain, player}
         """
-        #priority_id = self.choose_priority("thief_priority")
-        priority_id = self.priority_thief
+        priority_id = self.choose_priority("thief_priority")
         
         best_terrain = 0
         terrain_with_thief_id = -1
@@ -280,8 +275,7 @@ class HaoDiego(AgentInterface):
         Trigger para cuando empieza la fase de construcción. Devuelve un string indicando qué quiere construir
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        #priority_id = self.choose_priority("build_priority")
-        priority_id = self.priority_build
+        priority_id = self.choose_priority("build_priority")
         
         self.board = board_instance
         
@@ -418,11 +412,9 @@ class HaoDiego(AgentInterface):
         Se llama únicamente al inicio de la partida y sirve para colocar 1 pueblo y una carretera adyacente en el mapa
         :return: int, int
         """
-        #priority_id = self.choose_priority("beginning_priority")
-        priority_id = self.priority_begin
+        priority_id = self.choose_priority("beginning_priority")
         
         priority_id_mat_list = self.choose_priority("material_priority")
-        #priority_id_mat_list = self.priority_materials
         
         self.board = board_instance
         possibilities = self.board.valid_starting_nodes()
