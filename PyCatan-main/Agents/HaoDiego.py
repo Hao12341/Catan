@@ -27,32 +27,32 @@ class HaoDiego(AgentInterface):
         # La suma de todos los valores de una de estas listas dentro del gen debe dar 1 (la suma de todas las posibilidades es igual al 100% de posibilidades)
         self.genes = {
             'beginning_priority': [
-                0.5,      # MAX_RESOURCES_TYPE
-                0.5,      # MAX_DICE_PROB
+                0.3,      # MAX_RESOURCES_TYPE
+                0.7,      # MAX_DICE_PROB
             ],
             'build_priority': [
-                0.2,    # CITY_FIRST
+                0.5,    # CITY_FIRST
                 0.2,    # TOWN_FIRST
                 0.2,    # ROAD_EXPAND
-                0.2,    # PORT_HUNTER
-                0.2,    # CARD_SPAM
+                0.05,    # PORT_HUNTER
+                0.05,    # CARD_SPAM
             ],  
             'material_priority': [
-                0.3,    # clay
-                0.4,    # wood
-                0.05,    # cereal
-                0.1,    # wool
-                0.15     # mineral
+                0.3,    # cereal
+                0.3,    # mineral
+                0.1,    # clay
+                0.2,    # wood
+                0.1     # wool
             ],   
             'thief_priority': [
-                0.5,    # MAX_PLAYERS
-                0.5     # MAX_DICE_PROB
+                0.7,    # MAX_PLAYERS
+                0.3     # MAX_DICE_PROB
             ]    
         }
         self.probability_accumulated()
         self.priority_begin = self.choose_priority('beginning_priority')
         self.priority_build = self.choose_priority('build_priority')
-        self.priority_material = self.choose_priority('material_priority')
+        self.priority_materials = self.choose_priority('material_priority')
         self.priority_thief = self.choose_priority('thief_priority')
     
     
@@ -73,6 +73,16 @@ class HaoDiego(AgentInterface):
         :return: int
         """
         prior_list = self.genes[priority_type]
+        
+        if (priority_type == 'material_priority'):
+            materials_list = []
+            for j in range(3):
+                num_rand = random.random()
+                for i in range(len(prior_list)):
+                    if prior_list[i] > num_rand and (i is not materials_list):
+                        materials_list.append(i)
+                
+            return materials_list
         
         num_rand = random.random()
         for i in range(len(prior_list)):
@@ -411,6 +421,9 @@ class HaoDiego(AgentInterface):
         #priority_id = self.choose_priority("beginning_priority")
         priority_id = self.priority_begin
         
+        priority_id_mat_list = self.choose_priority("material_priority")
+        #priority_id_mat_list = self.priority_materials
+        
         self.board = board_instance
         possibilities = self.board.valid_starting_nodes()
         chosen_node_id = -1
@@ -428,6 +441,7 @@ class HaoDiego(AgentInterface):
                         if terrain_type is not different_terrains:
                             different_terrains.append(terrain_type)
                             terrain_resources_count += 1
+                            
                 if terrain_resources_count > best_terrain:
                     best_terrain = terrain_resources_count
                     best_node = node_id
@@ -450,6 +464,7 @@ class HaoDiego(AgentInterface):
                         terrain_resources_count += 2
                     elif terrain_probability in [2, 12]:
                         terrain_resources_count += 1
+                        
                     
                 if terrain_resources_count > best_terrain:
                     best_terrain = terrain_resources_count
